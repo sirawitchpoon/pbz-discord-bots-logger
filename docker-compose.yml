@@ -1,0 +1,21 @@
+# ใช้ MongoDB ของ honor-points-service — รัน honor-points-service ก่อน
+services:
+  discord-bots-logger:
+    build: .
+    image: discord-bots-logger:latest
+    container_name: discord-bots-logger
+    restart: unless-stopped
+    ports:
+      - "3020:3002"   # โฮสต์ 3020 (ไม่ใช้ 3002 เพื่อไม่ชน process อื่น)
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongodb:27017/honorbot
+      - PORT=3002
+    networks:
+      - honor-points-network
+
+networks:
+  honor-points-network:
+    external: true
+    name: honor-points-service_honor-points-network
