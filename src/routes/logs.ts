@@ -50,6 +50,34 @@ router.post('/logs', async (req: Request, res: Response) => {
   }
 });
 
+/** GET /api/logs/latest – ดู log ล่าสุด 1 รายการ (ต้องประกาศก่อน /logs เพื่อไม่ให้ /logs ไปจับ path นี้) */
+router.get('/logs/latest', async (_req: Request, res: Response) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ success: false, error: 'Database not connected' });
+    }
+    const log = await ActionLog.findOne().sort({ createdAt: -1 }).lean();
+    if (!log) {
+      return res.json({ success: true, log: null, message: 'No logs yet' });
+    }
+    res.json({
+      success: true,
+      log: {
+        id: log._id,
+        botId: log.botId,
+        category: log.category,
+        action: log.action,
+        userId: log.userId,
+        username: log.username,
+        createdAt: log.createdAt,
+      },
+    });
+  } catch (e) {
+    console.error('[Logger] GET /logs/latest error:', e);
+    res.status(500).json({ success: false, error: 'Internal error' });
+  }
+});
+
 /** GET /api/logs – สำหรับ Google Apps Script หรือตรวจสอบ (query: botId, category, limit, since) */
 router.get('/logs', async (req: Request, res: Response) => {
   try {

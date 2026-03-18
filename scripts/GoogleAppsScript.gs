@@ -130,17 +130,30 @@ function formatTimestampUtc8(isoString) {
 
 function fetchLogs(options) {
   var config = getConfig();
+  if (!config.url || config.url.indexOf('YOUR_VPS') !== -1) {
+    throw new Error('Set LOGGER_API_URL in Script Properties (Extensions → Apps Script → Project Settings → Script Properties). Example: http://143.14.200.26:3020');
+  }
+  if (!config.apiKey || config.apiKey === 'your-api-key') {
+    throw new Error('Set LOGGER_API_KEY in Script Properties to match the logger API_KEY.');
+  }
   var params = [];
   if (options && options.botId) params.push('botId=' + encodeURIComponent(options.botId));
   if (options && options.category) params.push('category=' + encodeURIComponent(options.category));
   if (options && options.limit) params.push('limit=' + Number(options.limit));
   if (options && options.since) params.push('since=' + encodeURIComponent(options.since));
   var qs = params.length ? '?' + params.join('&') : '?limit=5000';
-  var response = UrlFetchApp.fetch(config.url + '/api/logs' + qs, {
-    method: 'get',
-    headers: { 'X-API-Key': config.apiKey },
-    muteHttpExceptions: true
-  });
+  var url = config.url + '/api/logs' + qs;
+  var response;
+  try {
+    response = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: { 'X-API-Key': config.apiKey },
+      muteHttpExceptions: true,
+      timeout: 60
+    });
+  } catch (e) {
+    throw new Error('Cannot reach ' + config.url + ' — ' + e.message + '. Check URL and that the VPS allows port 3020 from the internet.');
+  }
   var code = response.getResponseCode();
   var body = response.getContentText();
   if (code !== 200) {
@@ -148,8 +161,8 @@ function fetchLogs(options) {
     try {
       var json = JSON.parse(body);
       if (json && json.error) msg = json.error;
-    } catch (e) {}
-    throw new Error('API error: ' + msg);
+    } catch (err) {}
+    throw new Error('API ' + code + ': ' + msg + ' (URL: ' + config.url + ')');
   }
   return JSON.parse(body);
 }
@@ -216,6 +229,11 @@ function syncLogs() {
   try {
     data = fetchLogs({ limit: 5000 });
   } catch (e) {
+    var indexSheet = ensureSheet(spreadsheet, 'Index');
+    indexSheet.clear();
+    indexSheet.getRange('A1').setValue('Sync failed');
+    indexSheet.getRange('A2').setValue(e.message);
+    indexSheet.getRange('A3').setValue('Last attempt: ' + formatTimestampUtc8(new Date().toISOString()));
     SpreadsheetApp.getUi().alert('Sync failed: ' + e.message);
     return;
   }
@@ -225,6 +243,7 @@ function syncLogs() {
     indexSheet.clear();
     indexSheet.getRange('A1').setValue('No logs yet. Run again after bots send logs.');
     indexSheet.getRange('A2').setValue('Last sync: ' + formatTimestampUtc8(new Date().toISOString()));
+    indexSheet.getRange('A3').setValue('If bots are active, check: Logger API reachable? API_KEY matches?');
     return;
   }
 
@@ -275,10 +294,15 @@ function syncLogs() {
     }
   }
 
+  // Newest log is first (API returns createdAt desc)
+  var newestLog = data.logs[0];
+  var newestTime = newestLog && newestLog.createdAt ? formatTimestampUtc8(newestLog.createdAt) : '—';
+
   var indexSheet = ensureSheet(spreadsheet, 'Index');
   indexSheet.clear();
   indexSheet.getRange('A1').setValue('Sheets updated: ' + sheetNamesUpdated.join(', '));
   indexSheet.getRange('A2').setValue('Last sync: ' + formatTimestampUtc8(new Date().toISOString()));
+  indexSheet.getRange('A3').setValue('Fetched ' + data.logs.length + ' logs; newest in API: ' + newestTime);
 }
 
 /** List bots and categories (for reference) */
@@ -298,12 +322,34 @@ function listBots() {
   Logger.log('Categories: ' + (data.categories && data.categories.join(', ')));
 }
 
+/** Test API connection and show newest log time (for debugging). */
+function testConnection() {
+  var config = getConfig();
+  if (!config.url || config.url.indexOf('YOUR_VPS') !== -1) {
+    SpreadsheetApp.getUi().alert('Set LOGGER_API_URL in Script Properties first (e.g. http://YOUR_VPS_IP:3020).');
+    return;
+  }
+  try {
+    var data = fetchLogs({ limit: 1 });
+    var msg = 'Connected. ';
+    if (data.logs && data.logs.length > 0) {
+      msg += 'Newest log: ' + formatTimestampUtc8(data.logs[0].createdAt) + ' (' + (data.logs[0].botId || '') + ' / ' + (data.logs[0].category || '') + ').';
+    } else {
+      msg += 'No logs in API yet.';
+    }
+    SpreadsheetApp.getUi().alert(msg);
+  } catch (e) {
+    SpreadsheetApp.getUi().alert('Connection failed: ' + e.message);
+  }
+}
+
 /** Add custom menu when spreadsheet opens */
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Logger')
     .addItem('Create all sheets (first time)', 'createAllLogSheets')
     .addItem('Sync logs', 'syncLogs')
+    .addItem('Test connection (newest log)', 'testConnection')
     .addItem('List bots/categories (log)', 'listBots')
     .addSeparator()
     .addItem('Set auto sync (every 15 min)', 'setTriggerSync15Min')

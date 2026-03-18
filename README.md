@@ -65,8 +65,9 @@ npm install && npm run build && npm start
 ## 📊 Google Sheets
 
 1. Create Sheet → **Extensions** → **Apps Script**; paste code from `scripts/GoogleAppsScript.gs`.
-2. Set `LOGGER_API_URL` = `http://YOUR_VPS_IP:3020`, `LOGGER_API_KEY` = same as `API_KEY`.
+2. **Script Properties**: **Project Settings** (gear) → **Script properties** → add `LOGGER_API_URL` = `http://YOUR_VPS_IP:3020`, `LOGGER_API_KEY` = same as logger `API_KEY`. The URL must be reachable from the internet (Google’s servers call it).
 3. Logger menu → **Create all sheets** (first time) → **Set auto sync** (e.g. every 15 min).
+4. If Sync doesn’t update: run **Test connection (newest log)** to see if the API is reachable and what the newest log time is. Check Index sheet after Sync for “Fetched N logs; newest in API: …” to confirm whether the API returned recent data.
 
 ---
 
