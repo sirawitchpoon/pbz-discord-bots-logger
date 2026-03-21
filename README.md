@@ -28,13 +28,17 @@ HTTP API only — **no Discord bot**. Other PBZ bots POST logs here; Google Shee
 ## 🔄 Flow
 
 ```
-honorbot-pbz, phantom-melody, pbz-bounty, … ──► POST /api/logs ──► MongoDB (action_logs)
-                                                                        │
+honorbot-pbz, phantom-melody, pbz-bounty,
+wuxia-bobozan (shadow_duel), invite-tracker (invite), …
+        ──► POST /api/logs ──► MongoDB (action_logs)
+                                        │
 Google Apps Script (e.g. every 15 min) ──────► GET /api/logs ◄─────────┘
         │
         ▼
 Google Sheet (tabs per bot + category)
 ```
+
+**Notable `botId` / `category` pairs:** `wuxia-bobozan` + `shadow_duel` (match/settlement analytics); `invite-tracker` + `invite` (`generate_link`, `invite_success` with honor reward fields).
 
 ---
 
