@@ -25,7 +25,8 @@ const BOT_DISPLAY_NAMES = {
   'pbz-bounty': 'PBZ Bounty',
   'discord-log-bot': 'Discord Log Bot',
   'bingo-bot': 'Bingo Bot',
-  'invite-tracker': 'Invite Tracker'
+  'invite-tracker': 'Invite Tracker',
+  'honor-shop-bot': 'Honor Shop'
 };
 const CATEGORY_DISPLAY_NAMES = {
   'daily': 'Daily Checkin',
@@ -51,7 +52,10 @@ const CATEGORY_DISPLAY_NAMES = {
   'bingo': 'Bingo',
   'log': 'Log',
   'admin': 'Admin',
-  'command': 'Command'
+  'command': 'Command',
+  'shop': 'Shop',
+  'purchase': 'Purchase',
+  'balance': 'Balance'
 };
 
 /**
@@ -91,7 +95,12 @@ const ALL_LOG_SHEETS = [
   { botId: 'bingo-bot', category: 'bingo' },
   { botId: 'bingo-bot', category: 'button' },
   // Discord Log Bot (if it sends logs)
-  { botId: 'discord-log-bot', category: 'log' }
+  { botId: 'discord-log-bot', category: 'log' },
+  // Honor Shop Bot
+  { botId: 'honor-shop-bot', category: 'shop' },
+  { botId: 'honor-shop-bot', category: 'purchase' },
+  { botId: 'honor-shop-bot', category: 'balance' },
+  { botId: 'honor-shop-bot', category: 'admin' }
 ];
 
 var HEADER_ROW = ['Timestamp (UTC+8)', 'Discord User ID', 'Discord Username', 'Action', 'Details'];
